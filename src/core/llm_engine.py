@@ -14,7 +14,7 @@ import time
 from typing import Dict, List, Optional
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 from src.core.settings import cfg
 from src.core.guardrails import (
@@ -52,12 +52,7 @@ class LLMEngine:
 
         self.tokenizer = AutoTokenizer.from_pretrained(cfg.llm.model_name)
 
-        # Gemma (and most causal models) have no pad token by default —
-        # set it to eos so batched / padded inputs don't crash.
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-
-        self.model = AutoModelForCausalLM.from_pretrained(
+        self.model = AutoModelForSeq2SeqLM.from_pretrained(
             cfg.llm.model_name,
             torch_dtype=torch.float32,
         ).to(self.device)
@@ -74,10 +69,7 @@ class LLMEngine:
             return_tensors="pt",
             max_length=cfg.llm.max_input_length,
             truncation=True,
-            padding=False,
         ).to(self.device)
-
-        input_len = inputs["input_ids"].shape[1]
 
         with torch.no_grad():
             output_ids = self.model.generate(
@@ -87,43 +79,10 @@ class LLMEngine:
                 top_p=cfg.llm.top_p,
                 repetition_penalty=cfg.llm.repetition_penalty,
                 do_sample=True,
-                pad_token_id=self.tokenizer.pad_token_id,
-                eos_token_id=self.tokenizer.eos_token_id,
             )
 
-        # Causal LM output includes the prompt tokens — slice them off
-        new_tokens = output_ids[0][input_len:]
-        return self.tokenizer.decode(new_tokens, skip_special_tokens=True)
-
-    # ── Private helpers ───────────────────────────────────────────────────────
-
-    def _generate(self, prompt: str) -> str:
-        """Tokenise *prompt* and run one forward pass through the LLM."""
-        inputs = self.tokenizer(
-            prompt,
-            return_tensors="pt",
-            max_length=cfg.llm.max_input_length,
-            truncation=True,
-            padding=False,
-        ).to(self.device)
-
-        input_len = inputs["input_ids"].shape[1]
-
-        with torch.no_grad():
-            output_ids = self.model.generate(
-                **inputs,
-                max_new_tokens=cfg.llm.max_new_tokens,
-                temperature=cfg.llm.temperature,
-                top_p=cfg.llm.top_p,
-                repetition_penalty=cfg.llm.repetition_penalty,
-                do_sample=True,
-                pad_token_id=self.tokenizer.pad_token_id,
-                eos_token_id=self.tokenizer.eos_token_id,
-            )
-
-        # Causal LM output includes the prompt tokens — slice them off
-        new_tokens = output_ids[0][input_len:]
-        return self.tokenizer.decode(new_tokens, skip_special_tokens=True)
+        # Seq2seq output contains only the generated tokens (no prompt echo)
+        return self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
 
     @staticmethod
     def _make_result(

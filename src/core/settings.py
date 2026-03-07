@@ -51,13 +51,13 @@ class EmbeddingSettings:
 
 @dataclass(frozen=True)
 class LLMSettings:
-    # Gemma-2-2B-IT (2B) — instruction-tuned decoder-only model.
-    # Requires AutoModelForCausalLM + chat-template prompt format.
+    # Flan-T5-XL (3B) — seq2seq encoder-decoder, publicly available (no gating).
+    # Requires AutoModelForSeq2SeqLM.
     # Other options within the 6B limit:
-    #   "google/gemma-2-9b-it"          # 9B  — exceeds limit
-    #   "Qwen/Qwen2.5-3B-Instruct"      # 3B  — also CausalLM, needs prompt tweaks
-    #   "google/flan-t5-xl"             # 3B  — seq2seq, use AutoModelForSeq2SeqLM
-    model_name: str = "google/gemma-2-2b-it"
+    #   "google/flan-t5-large"          # 780M  — lighter alternative
+    #   "google/gemma-2-2b-it"          # 2B    — gated, needs HF login + CausalLM
+    #   "Qwen/Qwen2.5-3B-Instruct"      # 3B    — needs CausalLM, no gating
+    model_name: str = "google/flan-t5-xl"
     max_new_tokens: int = 512
     temperature: float = 0.3
     top_p: float = 0.9

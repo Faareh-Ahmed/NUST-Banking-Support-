@@ -4,13 +4,6 @@ src/core/prompt_engine.py
 Prompt templates and static response strings for the NUST Bank chatbot.
 All templates are isolated here so they can be tuned without touching
 business logic in the LLM engine.
-
-Gemma-2 uses the following chat template:
-    <start_of_turn>user\n{message}<end_of_turn>\n
-    <start_of_turn>model\n{response}<end_of_turn>
-
-We inject the system persona as the first user turn so the model
-stays in-role from the very start of generation.
 """
 
 from typing import List, Dict
@@ -33,10 +26,7 @@ RULES:
 
 def build_rag_prompt(query: str, context_chunks: List[Dict]) -> str:
     """
-    Compose a Retrieval-Augmented Generation prompt for Gemma-2-it.
-
-    Uses Gemma's native chat template so the instruction-tuned model
-    stays aligned and produces clean, focused answers.
+    Compose a Retrieval-Augmented Generation prompt for Flan-T5.
 
     Parameters
     ----------
@@ -52,19 +42,13 @@ def build_rag_prompt(query: str, context_chunks: List[Dict]) -> str:
     """
     context_text = "\n\n".join(chunk["content"] for chunk in context_chunks)
 
-    # Turn 1: system persona + context + question (user role)
-    user_turn = (
-        f"{SYSTEM_PROMPT}\n\n"
-        f"Use ONLY the following context to answer the question. "
-        f"Be detailed and use bullet points where helpful.\n\n"
-        f"Context:\n{context_text}\n\n"
-        f"Question: {query}"
-    )
-
-    # Gemma-2 chat template — leave model turn open so generation begins immediately
     return (
-        f"<start_of_turn>user\n{user_turn}<end_of_turn>\n"
-        f"<start_of_turn>model\n"
+        f"{SYSTEM_PROMPT}\n\n"
+        "Answer the following question about NUST Bank using only the context provided. "
+        "Give a detailed, helpful answer with bullet points if needed.\n\n"
+        f"Context:\n{context_text}\n\n"
+        f"Question: {query}\n\n"
+        "Answer:"
     )
 
 

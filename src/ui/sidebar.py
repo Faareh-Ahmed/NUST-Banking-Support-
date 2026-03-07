@@ -73,7 +73,7 @@ def _render_about() -> None:
         "on NUST Bank's official knowledge base."
     )
     st.markdown(
-        "**Model:** Gemma-2-2B-IT  \n"
+        "**Model:** Flan-T5-XL  \n"
         "**Embeddings:** MiniLM-L6-v2  \n"
         "**Vector Store:** ChromaDB"
     )
