@@ -143,7 +143,7 @@ LLM_Project/
 ### Step 1: Clone the repository
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Faareh-Ahmed/NUST-Banking-Support-.git
 cd LLM_Project
 ```
 
