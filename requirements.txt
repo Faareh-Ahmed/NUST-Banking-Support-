@@ -1,9 +1,13 @@
 # Core ML & LLM
 torch>=2.0.0
-transformers>=4.42.0       # 4.42+ required for Gemma-2 support
+transformers>=4.42.0       # 4.42+ required for Flan-T5-XL / seq2seq models
 sentence-transformers>=2.2.2
 accelerate>=0.30.0         # required for large model offloading on CPU
 safetensors>=0.4.0         # faster / safer model weight loading
+
+# Fine-tuning (optional — needed only for scripts/fine_tune.py)
+# peft>=0.10.0
+# datasets>=2.18.0
 
 # Vector Store
 chromadb>=1.0.0
