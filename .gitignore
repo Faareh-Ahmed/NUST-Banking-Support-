@@ -4,12 +4,10 @@ venv/
 
 # Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
+
 dist/
 build/
-
+data/
 # Data artifacts (large files)
 data/chroma_db/
 data/processed/

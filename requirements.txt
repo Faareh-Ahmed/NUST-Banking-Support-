@@ -1,11 +1,13 @@
 # Core ML & LLM
 torch>=2.0.0
-transformers>=4.36.0
+transformers>=4.42.0       # 4.42+ required for Gemma-2 support
 sentence-transformers>=2.2.2
-accelerate>=0.25.0
+accelerate>=0.30.0         # required for large model offloading on CPU
+safetensors>=0.4.0         # faster / safer model weight loading
 
-# Vector Store (numpy-based cosine similarity)
-numpy>=1.24.0
+# Vector Store
+chromadb>=1.0.0
+protobuf>=3.20.0,<4.26.0  # chromadb 1.x requires protobuf <4.26 (6.x breaks MessageFactory)
 
 # Data Processing
 openpyxl>=3.1.2

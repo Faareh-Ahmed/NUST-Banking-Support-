@@ -46,22 +46,40 @@ This system provides an AI-driven customer support chatbot for NUST Bank that:
 ## 📁 Project Structure
 
 ```
-LLM/
-├── app.py                     # Streamlit web application (UI)
-├── config.py                  # Configuration & settings
-├── data_ingestion.py          # Data loading, cleaning, anonymization, chunking
-├── embedding_store.py         # Embedding model + ChromaDB vector store
-├── llm_engine.py              # LLM loading + RAG pipeline orchestration
-├── prompt_engine.py           # Prompt templates & domain-specific prompts
-├── guardrails.py              # Safety: jailbreak detection, PII filtering
-├── requirements.txt           # Python dependencies
-├── README.md                  # This file
-├── NUST Bank-Product-Knowledge.xlsx  # Source data (Excel)
-├── funds_transfer_app_features_faq.json  # Source data (JSON FAQ)
+LLM_Project/
+├── app.py                          # Streamlit entry point (only file at root besides data)
+│
+├── src/                            # All application source code
+│   ├── core/                       # Business logic
+│   │   ├── settings.py             # Typed dataclass-based config (single source of truth)
+│   │   ├── guardrails.py           # Input/output safety filters
+│   │   ├── prompt_engine.py        # RAG prompt templates & static response strings
+│   │   └── llm_engine.py           # End-to-end RAG pipeline
+│   │
+│   ├── ingestion/                  # Data loading & preprocessing
+│   │   ├── text_cleaner.py         # Clean & anonymise raw text
+│   │   ├── excel_loader.py         # Ingest product knowledge from Excel
+│   │   ├── json_loader.py          # Ingest structured FAQ JSON
+│   │   ├── upload_loader.py        # Ingest user-uploaded files
+│   │   ├── chunker.py              # Split documents into overlapping chunks
+│   │   └── pipeline.py             # Master ingestion pipeline
+│   │
+│   ├── retrieval/                  # Vector store & search
+│   │   └── embedding_store.py      # Sentence-transformer + NumPy cosine-similarity store
+│   │
+│   └── ui/                         # Streamlit components
+│       ├── styles.py               # Custom CSS injection
+│       ├── sidebar.py              # System stats + document upload panel
+│       └── chat.py                 # Chat history, input handling, response rendering
+│
+├── requirements.txt
+├── README.md
+├── NUST Bank-Product-Knowledge.xlsx
+├── funds_transfer_app_features_faq.json
 └── data/
-    ├── chroma_db/             # Persistent vector store
-    ├── processed/             # Processed document chunks
-    └── uploaded_docs/         # User-uploaded documents
+    ├── chroma_db/                  # Persistent vector store (JSON)
+    ├── processed/                  # Processed document chunks
+    └── uploaded_docs/              # User-uploaded documents
 ```
 
 ## 🚀 Setup & Installation
