@@ -91,7 +91,6 @@ LLM_Project/
 ├── app.py                          # Streamlit entry point
 ├── requirements.txt                # All Python dependencies
 ├── README.md                       # This file
-├── architecture_diagram.md         # Full pipeline diagram (required for submission)
 │
 ├── assets/                         # Source knowledge files
 │   ├── NUST Bank-Product-Knowledge.xlsx
