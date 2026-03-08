@@ -19,8 +19,6 @@ This system provides an AI-driven customer support chatbot for NUST Bank that:
 
 ## 🏗️ Architecture
 
-See [`architecture_diagram.md`](architecture_diagram.md) for the full pipeline diagram.
-
 ### Pipeline Flow
 
 ```
