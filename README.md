@@ -308,6 +308,21 @@ JSON uploads should follow the same structure as `assets/funds_transfer_app_feat
 
 ---
 
+
+---
+
+## 📸 App Demo
+
+Here are some screenshots demonstrating the frontend capabilities and RAG integration in action:
+
+![Overview](images/img1.png)
+![Document Upload Modal](images/img2.png)
+![Query and Answers](images/img3.png)
+![System Stats Integration](images/img4.png)
+
+---
+
+
 ## 👥 Team Collaboration (Git)
 
 ```bash

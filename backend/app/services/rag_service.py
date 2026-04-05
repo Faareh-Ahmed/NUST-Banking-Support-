@@ -21,8 +21,8 @@ class RAGService:
     _store: EmbeddingStore | None = None
     _engine: LLMEngine | None = None
 
-    def _ensure_ready(self) -> None:
-        """Initialize vector store and LLM once per process."""
+    def _ensure_ready_store(self) -> None:
+        """Initialize vector store once per process."""
         if self._store is None:
             self._store = EmbeddingStore()
             if self._store.document_count() == 0:
@@ -32,6 +32,9 @@ class RAGService:
                 docs = load_all_documents()
                 self._store.index_documents(docs)
 
+    def _ensure_ready_engine(self) -> None:
+        """Initialize LLM once per process."""
+        self._ensure_ready_store()
         if self._engine is None:
             self._engine = LLMEngine(embedding_store=self._store)
 
@@ -39,7 +42,7 @@ class RAGService:
         return {"status": "ok", "service": "nust-bank-backend"}
 
     def stats(self) -> dict:
-        self._ensure_ready()
+        self._ensure_ready_store()
         assert self._store is not None
 
         return {
@@ -49,7 +52,7 @@ class RAGService:
         }
 
     def chat(self, message: str) -> dict:
-        self._ensure_ready()
+        self._ensure_ready_engine()
         assert self._engine is not None
         return self._engine.answer(message)
 
@@ -59,7 +62,7 @@ class RAGService:
 
         Upsert IDs are deterministic, so existing uploaded files update in-place.
         """
-        self._ensure_ready()
+        self._ensure_ready_store()
         assert self._store is not None
 
         docs = ingest_uploaded_documents(cfg.paths.uploaded_docs_dir)

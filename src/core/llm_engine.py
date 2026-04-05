@@ -55,6 +55,7 @@ class LLMEngine:
         self.model = AutoModelForSeq2SeqLM.from_pretrained(
             cfg.llm.model_name,
             torch_dtype=torch.float32,
+            low_cpu_mem_usage=False,
         ).to(self.device)
         self.model.eval()
 
