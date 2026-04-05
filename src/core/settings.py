@@ -57,13 +57,12 @@ class LLMSettings:
     #   "google/flan-t5-large"          # 780M  — lighter alternative
     #   "google/gemma-2-2b-it"          # 2B    — gated, needs HF login + CausalLM
     #   "Qwen/Qwen2.5-3B-Instruct"      # 3B    — needs CausalLM, no gating
-    model_name: str = "google/flan-t5-xl"
-    max_new_tokens: int = 512
+    model_name: str = "google/flan-t5-small"
+    max_new_tokens: int = 160
     temperature: float = 0.3
     top_p: float = 0.9
     repetition_penalty: float = 1.2
-    # Max tokens fed to the model (input truncation)
-    max_input_length: int = 512
+    max_input_length: int = 384
 
 
 # ── Retriever Settings ────────────────────────────────────────────────────────

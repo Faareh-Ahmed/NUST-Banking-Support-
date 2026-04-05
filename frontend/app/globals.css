@@ -1,0 +1,252 @@
+:root {
+  --bg-1: #f7f5ef;
+  --bg-2: #dde8e1;
+  --surface: #ffffff;
+  --ink: #132029;
+  --muted: #4c6471;
+  --brand: #0d7c66;
+  --brand-strong: #0a5d4d;
+  --border: #d4ddd8;
+  --warning: #a24724;
+  --error: #b42318;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body), sans-serif;
+  color: var(--ink);
+  min-height: 100%;
+  background:
+    radial-gradient(1200px 500px at 0% 0%, #c8ded1 0%, transparent 60%),
+    radial-gradient(1200px 500px at 100% 100%, #dce8f2 0%, transparent 55%),
+    linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 100%);
+}
+
+h1,
+h2,
+.kicker {
+  font-family: var(--font-heading), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem 2.5rem;
+}
+
+.hero {
+  margin-bottom: 1.25rem;
+  animation: fade-in 0.5s ease-out;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--brand-strong);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.hero h1 {
+  margin: 0.45rem 0;
+  font-size: clamp(1.65rem, 4vw, 2.6rem);
+  line-height: 1.15;
+}
+
+.status {
+  color: var(--muted);
+  margin: 0;
+}
+
+.layout-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 1rem;
+}
+
+.card {
+  background: color-mix(in srgb, var(--surface) 88%, #ecf2ef);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: 0 10px 25px rgba(19, 32, 41, 0.08);
+}
+
+.chat-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 70vh;
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pill {
+  background: #e2f2ed;
+  color: var(--brand-strong);
+  border: 1px solid #bad8cf;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.chat-window {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0.8rem 0;
+  padding-right: 0.3rem;
+}
+
+.msg {
+  border-radius: 14px;
+  padding: 0.7rem 0.8rem;
+  line-height: 1.45;
+  animation: rise 0.18s ease-out;
+}
+
+.msg p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.msg.user {
+  margin-left: auto;
+  max-width: min(80%, 640px);
+  background: #0f766e;
+  color: #f7fffd;
+}
+
+.msg.assistant {
+  margin-right: auto;
+  max-width: min(86%, 760px);
+  background: #f2f6f8;
+  border: 1px solid #d7e4eb;
+}
+
+.meta {
+  margin-top: 0.45rem !important;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.warn {
+  margin-top: 0.4rem !important;
+  color: var(--warning);
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+.chat-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.65rem;
+}
+
+textarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 0.7rem;
+  resize: vertical;
+  font-family: var(--font-body), sans-serif;
+}
+
+button {
+  border: none;
+  border-radius: 12px;
+  background: var(--brand);
+  color: #fff;
+  padding: 0.65rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.ghost-btn {
+  width: 100%;
+  margin-top: 0.5rem;
+  background: #ebf5f1;
+  color: var(--brand-strong);
+  border: 1px solid #b9d7cb;
+}
+
+.upload-control {
+  display: block;
+  margin: 0.7rem 0;
+}
+
+.upload-control span {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.upload-control input {
+  width: 100%;
+}
+
+.small {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.error {
+  margin-top: 0.6rem;
+  color: var(--error);
+  font-weight: 600;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 960px) {
+  .layout-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-card {
+    min-height: 62vh;
+  }
+
+  .chat-form {
+    grid-template-columns: 1fr;
+  }
+}

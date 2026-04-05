@@ -13,7 +13,22 @@ This system provides an AI-driven customer support chatbot for NUST Bank that:
 - Uses **Retrieval-Augmented Generation (RAG)** to ground responses in official bank data
 - Implements **guardrails** against jailbreaking, prompt injection, and PII leakage
 - Supports **real-time document updates** via file upload in the sidebar
-- Provides a clean **Streamlit web interface**
+- Provides a clean **Next.js web interface** with a **FastAPI backend**
+
+---
+
+## 🧩 Full-Stack Architecture (Submission Version)
+
+- **Frontend:** Next.js (`frontend/`) for customer-facing chat and document upload
+- **Backend API:** FastAPI (`backend/`) for chat inference, upload ingestion, and system stats
+- **LLM Core:** Existing modular RAG engine under `src/` (reused, not duplicated)
+
+### API Endpoints
+
+- `GET /health` → backend health status
+- `GET /stats` → indexed chunks count + active models
+- `POST /chat` → RAG answer generation
+- `POST /upload` → save and index `.txt` / `.json` documents
 
 ---
 
@@ -88,9 +103,26 @@ User Query
 
 ```
 LLM_Project/
-├── app.py                          # Streamlit entry point
+├── app.py                          # Streamlit entry point (legacy/prototype)
 ├── requirements.txt                # All Python dependencies
 ├── README.md                       # This file
+│
+├── backend/
+│   └── app/
+│       ├── main.py                 # FastAPI entrypoint
+│       ├── schemas.py              # Request/response models
+│       └── services/
+│           └── rag_service.py      # Service layer over existing src/ RAG modules
+│
+├── frontend/
+│   ├── app/
+│   │   ├── layout.tsx              # Next.js root layout
+│   │   ├── page.tsx                # Main chat + upload interface
+│   │   └── globals.css             # Custom responsive UI styling
+│   ├── lib/
+│   │   └── api.ts                  # Frontend API client
+│   ├── package.json
+│   └── .env.example
 │
 ├── assets/                         # Source knowledge files
 │   ├── NUST Bank-Product-Knowledge.xlsx
@@ -162,18 +194,36 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Step 4: Run the application
+### Step 4: Run FastAPI backend
+
+```bash
+# from project root
+uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Step 5: Run Next.js frontend
+
+```bash
+cd frontend
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+### Optional: Streamlit prototype (legacy)
 
 ```bash
 streamlit run app.py
 ```
 
-On first launch the app will:
+On first launch the backend/frontend stack will:
 1. Create all required directories automatically
 2. Load and preprocess the bank knowledge base (Excel + JSON)
 3. Generate embeddings and index them in ChromaDB
 4. Download and load `google/flan-t5-xl` (~3 GB — takes a few minutes on first run)
-5. Launch the web interface at `http://localhost:8501`
+5. Serve API at `http://localhost:8000` and frontend at `http://localhost:3000`
 
 ---
 
