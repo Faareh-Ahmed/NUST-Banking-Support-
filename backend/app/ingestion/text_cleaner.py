@@ -1,11 +1,11 @@
 """
-src/ingestion/text_cleaner.py
+backend/app/ingestion/text_cleaner.py
 ------------------------------
 Stateless utilities for cleaning raw text and anonymising PII.
 """
 
 import re
-from src.core.settings import cfg
+from backend.app.core.settings import cfg
 
 
 def clean_text(text: str) -> str:

@@ -1,5 +1,5 @@
 """
-src/core/guardrails.py
+backend/app/core/guardrails.py
 -----------------------
 Input and output safety filters for the NUST Bank AI support system.
 Covers jailbreak detection, blocked-topic filtering, and PII scrubbing.
@@ -10,7 +10,7 @@ import re
 from dataclasses import dataclass
 from typing import List
 
-from src.core.settings import cfg
+from backend.app.core.settings import cfg
 
 logger = logging.getLogger(__name__)
 

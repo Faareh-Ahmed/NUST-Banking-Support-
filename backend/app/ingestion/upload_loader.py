@@ -1,5 +1,5 @@
 """
-src/ingestion/upload_loader.py
+backend/app/ingestion/upload_loader.py
 -------------------------------
 Ingests user-uploaded .txt and .json files from the uploads directory.
 Supports both the FAQ JSON schema and arbitrary plain-text/JSON files.
@@ -10,8 +10,8 @@ import logging
 import os
 from typing import List, Dict
 
-from src.core.settings import cfg
-from src.ingestion.text_cleaner import clean_text, anonymize_text
+from backend.app.core.settings import cfg
+from backend.app.ingestion.text_cleaner import clean_text, anonymize_text
 
 logger = logging.getLogger(__name__)
 
@@ -22,14 +22,14 @@ def ingest_uploaded_documents(directory: str = cfg.paths.uploaded_docs_dir) -> L
 
     - ``.txt`` files → cleaned and anonymised plain text.
     - ``.json`` files that follow the FAQ schema → delegated to
-      :func:`~src.ingestion.json_loader.ingest_faq_json`.
+      :func:`~backend.app.ingestion.json_loader.ingest_faq_json`.
     - Other ``.json`` files → serialised as text.
 
     Returns a list of document dicts:
         {"source": str, "category": str, "content": str}
     """
     # Deferred import to avoid circular dependency
-    from src.ingestion.json_loader import ingest_faq_json
+    from backend.app.ingestion.json_loader import ingest_faq_json
 
     documents: List[Dict[str, str]] = []
     if not os.path.isdir(directory):

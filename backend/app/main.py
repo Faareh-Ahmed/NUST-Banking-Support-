@@ -4,7 +4,14 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from pathlib import Path
+
+# Ensure absolute imports work even when running from `backend/app`
+# e.g. `uvicorn main:app` with CWD `backend/app`.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,7 +24,7 @@ from backend.app.schemas import (
     UploadResponse,
 )
 from backend.app.services.rag_service import RAGService
-from src.core.settings import cfg
+from backend.app.core.settings import cfg
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,12 +49,24 @@ app.add_middleware(
 
 @app.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
-    return HealthResponse(**service.health())
+    try:
+        return HealthResponse(**service.health())
+    except Exception as exc:
+        logger.exception("/health failed: %s", exc)
+        return HealthResponse(status="error", service="nust-bank-backend")
 
 
 @app.get("/stats", response_model=StatsResponse)
 def stats() -> StatsResponse:
-    return StatsResponse(**service.stats())
+    try:
+        return StatsResponse(**service.stats())
+    except Exception as exc:
+        logger.exception("/stats failed: %s", exc)
+        return StatsResponse(
+            indexed_documents=0,
+            llm_model=cfg.llm.model_name,
+            embedding_model=cfg.embedding.model_name,
+        )
 
 
 @app.post("/chat", response_model=ChatResponse)

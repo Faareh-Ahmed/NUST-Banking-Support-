@@ -1,5 +1,5 @@
 """
-src/core/settings.py
+backend/app/core/settings.py
 ---------------------
 Centralised, typed configuration for the NUST Bank AI Support system.
 All settings are grouped into frozen dataclasses so they can be imported
@@ -9,11 +9,13 @@ individually or as a whole via the top-level `cfg` singleton.
 import os
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, List
 
 # ── Base directory resolution ─────────────────────────────────────────────────
-# Always points to the project root (two levels above this file)
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Points to the project root (four levels above this file:
+# backend/app/core/settings.py → backend/app/core → backend/app → backend → project root)
+_PROJECT_ROOT = str(Path(__file__).resolve().parents[3])
 
 
 # ── Path Settings ─────────────────────────────────────────────────────────────
@@ -51,18 +53,14 @@ class EmbeddingSettings:
 
 @dataclass(frozen=True)
 class LLMSettings:
-    # Flan-T5-XL (3B) — seq2seq encoder-decoder, publicly available (no gating).
-    # Requires AutoModelForSeq2SeqLM.
-    # Other options within the 6B limit:
-    #   "google/flan-t5-large"          # 780M  — lighter alternative
-    #   "google/gemma-2-2b-it"          # 2B    — gated, needs HF login + CausalLM
-    #   "Qwen/Qwen2.5-3B-Instruct"      # 3B    — needs CausalLM, no gating
-    model_name: str = "google/flan-t5-small"
-    max_new_tokens: int = 160
+    # Groq-hosted Llama 3.2 — 3B parameters, free tier, ~200ms responses.
+    # Alternative Groq models (all free, all under 6B):
+    #   "llama-3.2-1b-preview"    # 1B  — fastest, lower quality
+    #   "llama-3.2-3b-preview"    # 3B  — recommended sweet spot
+    # Inference runs on Groq's LPU hardware; no local GPU needed.
+    model_name: str = "llama-3.2-3b-preview"
+    max_new_tokens: int = 400
     temperature: float = 0.3
-    top_p: float = 0.9
-    repetition_penalty: float = 1.2
-    max_input_length: int = 384
 
 
 # ── Retriever Settings ────────────────────────────────────────────────────────
@@ -71,7 +69,7 @@ class LLMSettings:
 class RetrieverSettings:
     chunk_size: int = 500       # characters per chunk
     chunk_overlap: int = 50     # characters of overlap between chunks
-    top_k: int = 5              # number of chunks retrieved per query
+    top_k: int = 3              # 3 chunks keeps prompt within 512-token T5 limit
     # Out-of-domain thresholds (cosine similarity)
     ood_max_score_threshold: float = 0.25
     ood_avg_score_threshold: float = 0.20
@@ -125,7 +123,7 @@ class AppConfig:
     guardrails: GuardrailSettings = field(default_factory=GuardrailSettings)
 
 
-# Module-level singleton — import this everywhere:  from src.core.settings import cfg
+# Module-level singleton — import this everywhere:  from backend.app.core.settings import cfg
 cfg = AppConfig()
 
 # Ensure required directories exist on import

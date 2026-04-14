@@ -1,5 +1,5 @@
 """
-src/ingestion/json_loader.py
+backend/app/ingestion/json_loader.py
 -----------------------------
 Ingests FAQ data from the structured JSON knowledge-base file.
 Each Q&A pair becomes a separate document tagged with its category.
@@ -9,8 +9,8 @@ import json
 import logging
 from typing import List, Dict
 
-from src.core.settings import cfg
-from src.ingestion.text_cleaner import clean_text, anonymize_text
+from backend.app.core.settings import cfg
+from backend.app.ingestion.text_cleaner import clean_text, anonymize_text
 
 logger = logging.getLogger(__name__)
 

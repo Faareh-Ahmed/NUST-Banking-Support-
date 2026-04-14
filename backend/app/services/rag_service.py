@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import logging
+import os
+import shutil
 from dataclasses import dataclass
 
-from src.core.llm_engine import LLMEngine
-from src.core.settings import cfg
-from src.ingestion.chunker import chunk_documents
-from src.ingestion.upload_loader import ingest_uploaded_documents
-from src.retrieval.embedding_store import EmbeddingStore
+from backend.app.core.llm_engine import LLMEngine
+from backend.app.core.settings import cfg
+from backend.app.ingestion.chunker import chunk_documents
+from backend.app.ingestion.upload_loader import ingest_uploaded_documents
+from backend.app.retrieval.embedding_store import EmbeddingStore
 
 logger = logging.getLogger(__name__)
 
@@ -20,17 +22,37 @@ class RAGService:
 
     _store: EmbeddingStore | None = None
     _engine: LLMEngine | None = None
+    _store_error: str | None = None
 
     def _ensure_ready_store(self) -> None:
         """Initialize vector store once per process."""
         if self._store is None:
-            self._store = EmbeddingStore()
-            if self._store.document_count() == 0:
-                from src.ingestion.pipeline import load_all_documents
+            if self._store_error is not None:
+                # ChromaDB already failed; don't retry
+                logger.warning("ChromaDB already failed in this process; skipping retry.")
+                raise RuntimeError(self._store_error)
 
-                logger.info("No embeddings found. Running initial ingestion/indexing.")
-                docs = load_all_documents()
-                self._store.index_documents(docs)
+            try:
+                self._store = EmbeddingStore()
+                if self._store.document_count() == 0:
+                    from backend.app.ingestion.pipeline import load_all_documents
+
+                    logger.info("No embeddings found. Running initial ingestion/indexing.")
+                    docs = load_all_documents()
+                    self._store.index_documents(docs)
+            except Exception as e:
+                logger.error(f"ChromaDB initialization failed: {e}")
+                self._store_error = str(e)
+                self._store = None
+                # Attempt to reset the corrupted database
+                if os.path.exists(cfg.paths.chroma_dir):
+                    logger.info(f"Resetting corrupted ChromaDB at {cfg.paths.chroma_dir}")
+                    try:
+                        shutil.rmtree(cfg.paths.chroma_dir)
+                        os.makedirs(cfg.paths.chroma_dir, exist_ok=True)
+                    except Exception as reset_error:
+                        logger.error(f"Failed to reset ChromaDB: {reset_error}")
+                raise
 
     def _ensure_ready_engine(self) -> None:
         """Initialize LLM once per process."""
@@ -42,14 +64,23 @@ class RAGService:
         return {"status": "ok", "service": "nust-bank-backend"}
 
     def stats(self) -> dict:
-        self._ensure_ready_store()
-        assert self._store is not None
+        try:
+            self._ensure_ready_store()
+            assert self._store is not None
 
-        return {
-            "indexed_documents": self._store.document_count(),
-            "llm_model": cfg.llm.model_name,
-            "embedding_model": cfg.embedding.model_name,
-        }
+            return {
+                "indexed_documents": self._store.document_count(),
+                "llm_model": cfg.llm.model_name,
+                "embedding_model": cfg.embedding.model_name,
+            }
+        except Exception as e:
+            logger.error(f"Stats endpoint failed: {e}")
+            return {
+                "indexed_documents": 0,
+                "llm_model": cfg.llm.model_name,
+                "embedding_model": cfg.embedding.model_name,
+                "error": f"Vector store unavailable: {str(e)[:100]}",
+            }
 
     def chat(self, message: str) -> dict:
         self._ensure_ready_engine()

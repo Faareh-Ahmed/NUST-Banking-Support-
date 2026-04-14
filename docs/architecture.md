@@ -154,7 +154,7 @@
 | **Text Cleaner** | `src/ingestion/text_cleaner.py` | Normalise whitespace, strip non-printables, anonymise PII |
 | **Excel Loader** | `src/ingestion/excel_loader.py` | Parse product knowledge workbook with `openpyxl` |
 | **JSON Loader** | `src/ingestion/json_loader.py` | Parse structured FAQ JSON |
-| **Upload Loader** | `src/ingestion/upload_loader.py` | Load runtime user-uploaded `.txt`/`.json` files |
+| **Upload Loader** | `src/ingestion/upload_loader.py` | Load runtime user-uploaded `.txt`/.json files |
 | **Chunker** | `src/ingestion/chunker.py` | Split documents into 500-char chunks with 50-char overlap |
 | **Pipeline** | `src/ingestion/pipeline.py` | Orchestrates all loaders → chunker → persist to `all_chunks.json` |
 | **Embedding Store** | `src/retrieval/embedding_store.py` | `all-MiniLM-L6-v2` encoder + ChromaDB persistent collection |

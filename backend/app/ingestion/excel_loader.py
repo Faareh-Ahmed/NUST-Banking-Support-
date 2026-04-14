@@ -1,5 +1,5 @@
 """
-src/ingestion/excel_loader.py
+backend/app/ingestion/excel_loader.py
 ------------------------------
 Ingests product knowledge from the NUST Bank Excel workbook.
 Each worksheet becomes one document tagged with its sheet name as category.
@@ -10,8 +10,8 @@ from typing import List, Dict
 
 import openpyxl
 
-from src.core.settings import cfg
-from src.ingestion.text_cleaner import clean_text, anonymize_text
+from backend.app.core.settings import cfg
+from backend.app.ingestion.text_cleaner import clean_text, anonymize_text
 
 logger = logging.getLogger(__name__)
 

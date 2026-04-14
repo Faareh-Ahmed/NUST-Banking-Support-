@@ -1,5 +1,5 @@
 """
-src/retrieval/embedding_store.py
+backend/app/retrieval/embedding_store.py
 ---------------------------------
 Sentence-transformer embedding model + ChromaDB persistent vector store
 with cosine-similarity retrieval.
@@ -11,7 +11,7 @@ from typing import Dict, List
 import chromadb
 from sentence_transformers import SentenceTransformer
 
-from src.core.settings import cfg
+from backend.app.core.settings import cfg
 
 logger = logging.getLogger(__name__)
 
@@ -137,25 +137,3 @@ class EmbeddingStore:
             metadata={"hnsw:space": "cosine"},
         )
         logger.info("ChromaDB collection reset.")
-
-
-# ── CLI entry-point ───────────────────────────────────────────────────────────
-
-if __name__ == "__main__":
-    from src.ingestion.pipeline import load_all_documents
-
-    store = EmbeddingStore()
-    if store.document_count() == 0:
-        docs = load_all_documents()
-        store.index_documents(docs)
-    print(f"\nIndexed {store.document_count()} chunks.")
-
-    for q in [
-        "What is the transfer limit?",
-        "Who can apply for auto finance?",
-        "What account types does NUST Bank offer?",
-    ]:
-        print(f"\n{'='*50}\nQ: {q}")
-        for r in store.search(q)[:3]:
-            print(f"  [{r['score']:.3f}] {r['source']}")
-            print(f"  {r['content'][:150]}...")

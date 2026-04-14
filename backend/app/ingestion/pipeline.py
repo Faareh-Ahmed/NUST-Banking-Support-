@@ -1,5 +1,5 @@
 """
-src/ingestion/pipeline.py
+backend/app/ingestion/pipeline.py
 --------------------------
 Orchestrates the full document-ingestion pipeline:
   load → chunk → persist → return chunks
@@ -10,11 +10,11 @@ import logging
 import os
 from typing import List, Dict
 
-from src.core.settings import cfg
-from src.ingestion.excel_loader import ingest_excel
-from src.ingestion.json_loader import ingest_faq_json
-from src.ingestion.upload_loader import ingest_uploaded_documents
-from src.ingestion.chunker import chunk_documents
+from backend.app.core.settings import cfg
+from backend.app.ingestion.excel_loader import ingest_excel
+from backend.app.ingestion.json_loader import ingest_faq_json
+from backend.app.ingestion.upload_loader import ingest_uploaded_documents
+from backend.app.ingestion.chunker import chunk_documents
 
 logger = logging.getLogger(__name__)
 
@@ -44,14 +44,3 @@ def load_all_documents() -> List[Dict[str, str]]:
     logger.info("Saved %d chunks to %s", len(chunked), processed_path)
 
     return chunked
-
-
-# ── CLI entry-point ───────────────────────────────────────────────────────────
-
-if __name__ == "__main__":
-    import pprint
-    docs = load_all_documents()
-    print(f"\nTotal chunks: {len(docs)}")
-    for d in docs[:3]:
-        print(f"\n--- {d['chunk_id']} ---")
-        pprint.pprint(d["content"][:200])

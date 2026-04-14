@@ -1,27 +1,21 @@
-# Core ML & LLM
-torch>=2.0.0
-transformers>=4.42.0       # 4.42+ required for Flan-T5-XL / seq2seq models
-sentence-transformers>=2.2.2
-accelerate>=0.30.0         # required for large model offloading on CPU
-safetensors>=0.4.0         # faster / safer model weight loading
+# ── LLM (Cloud API — no local GPU needed) ────────────────────────────────────
+groq>=0.9.0                        # Groq API client for Llama 3.2 3B inference
 
-# Fine-tuning (optional — needed only for scripts/fine_tune.py)
-# peft>=0.10.0
-# datasets>=2.18.0
+# ── Local Embeddings ──────────────────────────────────────────────────────────
+sentence-transformers>=2.2.2       # all-MiniLM-L6-v2 (22M params, CPU-fast, ~100 MB)
 
-# Vector Store
+# ── Vector Store ──────────────────────────────────────────────────────────────
 chromadb>=1.0.0
-protobuf>=3.20.0,<4.26.0  # chromadb 1.x requires protobuf <4.26 (6.x breaks MessageFactory)
+protobuf>=3.20.0,<4.26.0           # chromadb 1.x requires protobuf <4.26
 
-# Data Processing
-openpyxl>=3.1.2
+# ── Data Processing ───────────────────────────────────────────────────────────
+openpyxl>=3.1.2                    # Excel knowledge-base parsing
 pandas>=2.0.0
 
-# Web UI
-streamlit>=1.29.0
+# ── Backend Framework ─────────────────────────────────────────────────────────
 fastapi>=0.111.0
 uvicorn[standard]>=0.30.0
-python-multipart>=0.0.9
+python-multipart>=0.0.9            # file upload handling
 
-# Utilities
+# ── Utilities ─────────────────────────────────────────────────────────────────
 regex>=2023.0

@@ -1,5 +1,5 @@
 """
-src/ingestion/chunker.py
+backend/app/ingestion/chunker.py
 -------------------------
 Splits documents into overlapping text chunks suitable for embedding.
 """
@@ -7,7 +7,7 @@ Splits documents into overlapping text chunks suitable for embedding.
 import logging
 from typing import List, Dict
 
-from src.core.settings import cfg
+from backend.app.core.settings import cfg
 
 logger = logging.getLogger(__name__)
 
