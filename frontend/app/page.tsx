@@ -1,245 +1,274 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { getStats, sendChat, uploadDocument } from "@/lib/api";
 
-type UiMessage = {
+type Message = {
   role: "user" | "assistant";
   content: string;
-  sources?: string[];
   latencyMs?: number;
-  guardrailTriggered?: boolean;
-  outOfDomain?: boolean;
 };
 
-const WELCOME_MESSAGE = `Welcome to NUST Bank AI Support.\n\nI can help you with account types, banking products, cards, app features, and policy questions.`;
+const WELCOME: Message = {
+  role: "assistant",
+  content:
+    "Hello! I'm the NUST Bank virtual assistant.\n\nI can help you with account information, banking products, cards, mobile app features, loans, and insurance. What can I help you with today?",
+};
 
 export default function Home() {
-  const [messages, setMessages] = useState<UiMessage[]>([
-    { role: "assistant", content: WELCOME_MESSAGE },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([WELCOME]);
   const [input, setInput] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const [statsText, setStatsText] = useState("Loading system status...");
-  
-  // Upload & Modal states
+  const [sending, setSending] = useState(false);
+  const [docCount, setDocCount] = useState<number | null>(null);
+  const [online, setOnline] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState("");
-  const [error, setError] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState("");
+  const [uploadOk, setUploadOk] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => { loadStats(); }, []);
   useEffect(() => {
-    refreshStats();
-  }, []);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, sending]);
 
-  async function refreshStats() {
+  async function loadStats() {
     try {
-      const stats = await getStats();
-      setStatsText(
-        `${stats.indexed_documents} indexed chunks | LLM: ${stats.llm_model} | Embeddings: ${stats.embedding_model}`,
-      );
+      const s = await getStats();
+      setDocCount(s.indexed_documents);
+      setOnline(true);
     } catch {
-      setStatsText("Backend is not reachable. Start FastAPI server on port 8000.");
+      setOnline(false);
     }
   }
 
-  async function handleSend(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
-    const message = input.trim();
-    if (!message || isSending) return;
+    const msg = input.trim();
+    if (!msg || sending) return;
 
-    setError("");
     setInput("");
-    setMessages((prev: UiMessage[]) => [...prev, { role: "user", content: message }]);
-    setIsSending(true);
+    setMessages(p => [...p, { role: "user", content: msg }]);
+    setSending(true);
 
     try {
-      const response = await sendChat(message);
-      setMessages((prev: UiMessage[]) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: response.answer,
-          sources: response.sources,
-          latencyMs: response.latency_ms,
-          guardrailTriggered: response.guardrail_triggered,
-          outOfDomain: response.out_of_domain,
-        },
-      ]);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to send message";
-      setError(msg);
+      const res = await sendChat(msg);
+      setMessages(p => [...p, {
+        role: "assistant",
+        content: res.answer,
+        latencyMs: res.latency_ms,
+      }]);
+    } catch {
+      setMessages(p => [...p, {
+        role: "assistant",
+        content: "I'm having trouble connecting right now. Please try again shortly.",
+      }]);
     } finally {
-      setIsSending(false);
+      setSending(false);
+    }
+  }
+
+  function handleKey(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      submit(e as unknown as FormEvent);
     }
   }
 
   async function handleUpload(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] || null;
+    const file = e.target.files?.[0];
     if (!file || uploading) return;
 
-    setError("");
-    setUploadMessage("Uploading and indexing document... Please wait.");
+    setUploadMsg("Uploading and processing document...");
+    setUploadOk(true);
     setUploading(true);
 
     try {
       const res = await uploadDocument(file);
-      setUploadMessage(
-        `Success! ${res.filename} indexed. Added chunks: ${res.indexed_chunks}.`
-      );
-      await refreshStats();
-      
-      // Auto-close modal after 3 seconds on success
-      setTimeout(() => {
-        setIsModalOpen(false);
-        setUploadMessage("");
-      }, 3000);
-      
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Upload failed";
-      setUploadMessage(`Error: ${msg}`);
-      setError(msg);
+      setUploadMsg(`"${res.filename}" added successfully — ${res.indexed_chunks} passages indexed.`);
+      setDocCount(res.indexed_documents_total);
+      setTimeout(() => { setModalOpen(false); setUploadMsg(""); }, 2800);
+    } catch {
+      setUploadMsg("Upload failed. Please check the file format and try again.");
+      setUploadOk(false);
     } finally {
       setUploading(false);
-      // Allow uploading the same file again if desired
       e.target.value = "";
     }
   }
 
-  const chatTitle = useMemo(() => (isSending ? "Thinking..." : "Ready"), [isSending]);
+  function openModal() { setModalOpen(true); setUploadMsg(""); setUploadOk(true); }
+  function closeModal() { if (!uploading) setModalOpen(false); }
 
   return (
-    <main className="page">
-      <section className="hero">
-        <p className="kicker">NUST Bank Digital Assistant</p>
-        <h1>Customer Support That Stays Grounded In Your Bank Knowledge Base</h1>
-        <p className="status">{statsText}</p>
-      </section>
+    <div className="shell">
 
-      <section className="layout-grid">
-                <aside className="card">
-          <h2>Knowledge Base Updates</h2>
-          <p>Make new policy or FAQ content searchable immediately.</p>
-          <button 
-            className="ghost-btn" 
-            style={{ marginBottom: "1rem", outline: "1px solid #ccc" }} 
-            type="button" 
-            onClick={() => {
-              setIsModalOpen(true);
-              setUploadMessage("");
-            }}>
-            Upload Document
-          </button>
-          
-          <button className="ghost-btn" type="button" onClick={refreshStats}>
-            Refresh System Status
-          </button>
+      {/* ── Top bar ───────────────────────────────────────────── */}
+      <header className="topbar">
+        <div className="topbar-left">
+          <div className="logo">
+            <span className="logo-mark">N</span>
+          </div>
+          <div className="topbar-name">
+            <span className="bank-name">NUST Bank</span>
+            <span className="bank-sub">Customer Support</span>
+          </div>
+        </div>
+        <div className="topbar-right">
+          <span className={`dot ${online ? "dot--on" : "dot--off"}`} />
+          <span className="online-label">{online ? "Assistant online" : "Connecting…"}</span>
+        </div>
+      </header>
 
-          {isModalOpen && (
-            <div style={{
-              position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-              backgroundColor: "rgba(19, 32, 41, 0.75)", display: "flex",
-              alignItems: "center", justifyContent: "center", zIndex: 9999,
-              backdropFilter: "blur(4px)"
-            }}>
-              <div style={{
-                maxWidth: "450px", width: "90%", backgroundColor: "var(--surface)", 
-                padding: "2.5rem", borderRadius: "20px",
-                boxShadow: "0 25px 50px rgba(0,0,0,0.25)", border: "1px solid var(--border)",
-                display: "flex", flexDirection: "column", gap: "1rem", position: "relative"
-              }}>
-                <h2 style={{ margin: 0, color: "var(--brand-strong)", fontSize: "1.5rem" }}>Upload Knowledge Document</h2>
-                <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.5 }}>
-                  Add a new text or JSON file to the system. It will be indexed and available for chat immediately.
-                </p>
-                
-                <div style={{
-                  border: "2px dashed var(--border)", borderRadius: "12px", padding: "1.5rem", 
-                  textAlign: "center", backgroundColor: "var(--bg-1)", margin: "0.5rem 0",
-                  position: "relative", cursor: uploading ? "not-allowed" : "pointer",
-                  transition: "all 0.2s"
-                }}>
-                  <span style={{ fontWeight: 600, color: "var(--brand)" }}>
-                    {uploading ? "Processing file..." : "+ Click or drop file here"}
-                  </span>
-                  <input
-                    type="file"
-                    accept=".txt,.json"
-                    onChange={handleUpload}
-                    disabled={uploading}
-                    style={{
-                      position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%", 
-                      opacity: 0, cursor: uploading ? "not-allowed" : "pointer"
-                    }}
-                  />
-                </div>
-                
-                {(uploading || uploadMessage) && (
-                  <div style={{
-                    padding: "0.75rem", borderRadius: "8px", fontSize: "0.9rem",
-                    backgroundColor: error ? "#fef2f2" : "#ecfdf5",
-                    color: error ? "var(--error)" : "var(--brand-strong)",
-                    border: `1px solid ${error ? "#fecaca" : "#a7f3d0"}`
-                  }}>
-                    <strong style={{ display: "block", marginBottom: "4px" }}>
-                      {error ? "Upload Error" : "System Status"}
-                    </strong>
-                    {uploadMessage}
-                  </div>
-                )}
-                
-                <button 
-                  style={{ 
-                    marginTop: "0.5rem", padding: "0.8rem 1.5rem", borderRadius: "8px",
-                    backgroundColor: "transparent", color: "var(--muted)",
-                    border: "1px solid var(--border)", cursor: uploading ? "not-allowed" : "pointer",
-                    fontWeight: 600, fontSize: "1rem", transition: "0.2s"
-                  }}
-                  type="button" 
-                  onClick={() => setIsModalOpen(false)}
-                  disabled={uploading}
-                >
-                  {uploading ? "Please wait..." : "Cancel & Close"}
-                </button>
-              </div>
-            </div>
-          )}
+      {/* ── Main ──────────────────────────────────────────────── */}
+      <main className="body">
+
+        {/* Sidebar */}
+        <aside className="sidebar">
+          <div className="sidebar-block">
+            <p className="sidebar-eyebrow">I can help with</p>
+            <ul className="topic-list">
+              {[
+                "Savings & current accounts",
+                "Loans and finance products",
+                "Debit & credit cards",
+                "Mobile app & fund transfers",
+                "Bancassurance & insurance",
+              ].map(t => (
+                <li key={t}>
+                  <svg className="check-icon" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="7.25" stroke="currentColor" strokeWidth="1.5" />
+                    <polyline points="5,8.5 7,10.5 11,6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="sidebar-sep" />
+
+          <div className="sidebar-block">
+            <p className="sidebar-eyebrow">Knowledge base</p>
+            <p className="kb-count">
+              {docCount !== null
+                ? <><strong>{docCount.toLocaleString()}</strong> documents available</>
+                : "Loading…"}
+            </p>
+            <button className="btn-upload" onClick={openModal}>
+              <UploadIcon />
+              Add document
+            </button>
+          </div>
+
+
         </aside>
 
-        <section className="card chat-card">
-          <div className="chat-header">
-            <h2>Live Support Chat</h2>
-            <span className="pill">{chatTitle}</span>
-          </div>
-
-          <div className="chat-window">
-            {messages.map((m, idx) => (
-              <article key={`${m.role}-${idx}`} className={`msg ${m.role}`}>
-                <p>{m.content}</p>
-                {/* Sources list deliberately removed as requested */}
-                {typeof m.latencyMs === "number" && <p className="meta">Latency: {m.latencyMs}ms</p>}
-                {m.guardrailTriggered && <p className="warn">Safety filter applied</p>}
-                {m.outOfDomain && <p className="meta">Out-of-domain query detected</p>}
-              </article>
+        {/* Chat */}
+        <section className="chat">
+          <div className="chat-feed">
+            {messages.map((m, i) => (
+              <div key={i} className={`row row--${m.role}`}>
+                {m.role === "assistant" && <div className="av">N</div>}
+                <div className={`bubble bubble--${m.role}`}>
+                  <p>{m.content}</p>
+                  {m.latencyMs !== undefined && (
+                    <span className="timing">{(m.latencyMs / 1000).toFixed(1)}s</span>
+                  )}
+                </div>
+              </div>
             ))}
+
+            {sending && (
+              <div className="row row--assistant">
+                <div className="av">N</div>
+                <div className="bubble bubble--assistant bubble--typing">
+                  <span /><span /><span />
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} />
           </div>
 
-          <form className="chat-form" onSubmit={handleSend}>
+          <form className="chat-form" onSubmit={submit}>
             <textarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about NUST Bank products, accounts, cards, policies, or app features..."
-              rows={3}
-              disabled={isSending}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKey}
+              placeholder="Ask about accounts, cards, loans, or app features…"
+              rows={2}
+              disabled={sending}
             />
-            <button type="submit" disabled={isSending || !input.trim()}>
-              {isSending ? "Sending..." : "Send Message"}
+            <button type="submit" disabled={sending || !input.trim()} className="btn-send" aria-label="Send">
+              <SendIcon />
             </button>
           </form>
-
-          {error && <p className="error">{error}</p>}
         </section>
-      </section>
-    </main>
+      </main>
+
+      {/* ── Upload modal ──────────────────────────────────────── */}
+      {modalOpen && (
+        <div className="overlay" onClick={e => e.target === e.currentTarget && closeModal()}>
+          <div className="modal" role="dialog" aria-modal="true">
+            <button className="modal-x" onClick={closeModal} aria-label="Close">
+              <CloseIcon />
+            </button>
+
+            <div className="modal-icon-wrap"><UploadIcon size={26} /></div>
+            <h2 className="modal-title">Add to Knowledge Base</h2>
+            <p className="modal-desc">
+              Upload a document to expand the assistant's knowledge. Changes take effect immediately.
+            </p>
+
+            <label className={`drop-zone${uploading ? " drop-zone--busy" : ""}`}>
+              <input type="file" accept=".txt,.json" onChange={handleUpload} disabled={uploading} />
+              <span className="dz-label">
+                {uploading ? "Processing…" : "Click to browse or drop a file"}
+              </span>
+              <span className="dz-hint">Supported formats: .txt &nbsp;·&nbsp; .json</span>
+            </label>
+
+            {uploadMsg && (
+              <p className={`upload-status ${uploadOk ? "upload-status--ok" : "upload-status--err"}`}>
+                {uploadMsg}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Inline SVG icons ──────────────────────────────────────────────────── */
+
+function UploadIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
   );
 }

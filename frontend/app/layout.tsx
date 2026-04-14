@@ -15,8 +15,8 @@ const body = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
-  title: "NUST Bank AI Support",
-  description: "Customer support assistant powered by FastAPI + Next.js",
+  title: "NUST Bank — Customer Support",
+  description: "Get instant answers about NUST Bank accounts, products, cards, and services.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
