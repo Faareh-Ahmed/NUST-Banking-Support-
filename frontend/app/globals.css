@@ -195,6 +195,53 @@ ul { list-style: none; }
 }
 .btn-upload:hover { background: var(--green-100); border-color: #93ccc0; }
 
+/* ── Metrics grid ─────────────────────────────────────────────────────────── */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .5rem;
+}
+
+.metric-card {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius-sm);
+  padding: .6rem .7rem;
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+}
+
+.metric-card--warn {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.metric-card--muted {
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+}
+
+.metric-value {
+  font-family: var(--font-heading), sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  line-height: 1;
+  letter-spacing: -.02em;
+}
+
+.metric-card--warn .metric-value  { color: #b45309; }
+.metric-card--muted .metric-value { color: #6d28d9; }
+
+.metric-label {
+  font-size: .7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--gray-500);
+}
+
 .sidebar-footer {
   margin-top: auto;
   padding-top: 1.25rem;

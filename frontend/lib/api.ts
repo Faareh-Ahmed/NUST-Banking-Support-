@@ -10,6 +10,10 @@ export type StatsResponse = {
   indexed_documents: number;
   llm_model: string;
   embedding_model: string;
+  total_queries: number;
+  avg_latency_ms: number;
+  guardrail_triggers: number;
+  out_of_domain_count: number;
 };
 
 export type UploadResponse = {

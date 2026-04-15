@@ -13,6 +13,15 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+# Load backend/.env so OPENROUTER_API_KEY and FRONTEND_ORIGIN are available.
+_env_file = PROJECT_ROOT / "backend" / ".env"
+if _env_file.exists():
+    for _line in _env_file.read_text().splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith("#") and "=" in _line:
+            _k, _v = _line.split("=", 1)
+            os.environ.setdefault(_k.strip(), _v.strip())
+
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -82,8 +91,8 @@ def chat(payload: ChatRequest) -> ChatResponse:
 @app.post("/upload", response_model=UploadResponse)
 def upload(file: UploadFile = File(...)) -> UploadResponse:
     suffix = Path(file.filename or "").suffix.lower()
-    if suffix not in {".txt", ".json"}:
-        raise HTTPException(status_code=400, detail="Only .txt and .json files are supported.")
+    if suffix not in {".txt", ".json", ".pdf"}:
+        raise HTTPException(status_code=400, detail="Only .txt, .json, and .pdf files are supported.")
 
     os.makedirs(cfg.paths.uploaded_docs_dir, exist_ok=True)
     save_path = Path(cfg.paths.uploaded_docs_dir) / (file.filename or "uploaded_file")

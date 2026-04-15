@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
-import { getStats, sendChat, uploadDocument } from "@/lib/api";
+import { getStats, sendChat, uploadDocument, StatsResponse } from "@/lib/api";
 
 type Message = {
   role: "user" | "assistant";
@@ -19,7 +19,7 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [docCount, setDocCount] = useState<number | null>(null);
+  const [stats, setStats] = useState<StatsResponse | null>(null);
   const [online, setOnline] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState("");
@@ -27,7 +27,13 @@ export default function Home() {
   const [modalOpen, setModalOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { loadStats(); }, []);
+  useEffect(() => {
+    loadStats();
+    // Refresh metrics every 20 s so they stay live during presentation
+    const id = setInterval(loadStats, 20_000);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sending]);
@@ -35,7 +41,7 @@ export default function Home() {
   async function loadStats() {
     try {
       const s = await getStats();
-      setDocCount(s.indexed_documents);
+      setStats(s);
       setOnline(true);
     } catch {
       setOnline(false);
@@ -58,6 +64,8 @@ export default function Home() {
         content: res.answer,
         latencyMs: res.latency_ms,
       }]);
+      // Refresh metrics after every chat to keep counts current
+      loadStats();
     } catch {
       setMessages(p => [...p, {
         role: "assistant",
@@ -85,11 +93,12 @@ export default function Home() {
 
     try {
       const res = await uploadDocument(file);
-      setUploadMsg(`"${res.filename}" added successfully — ${res.indexed_chunks} passages indexed.`);
-      setDocCount(res.indexed_documents_total);
+      setUploadMsg(`"${res.filename}" added — ${res.indexed_chunks} passages indexed.`);
+      loadStats();
       setTimeout(() => { setModalOpen(false); setUploadMsg(""); }, 2800);
-    } catch {
-      setUploadMsg("Upload failed. Please check the file format and try again.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Upload failed. Please try again.";
+      setUploadMsg(msg);
       setUploadOk(false);
     } finally {
       setUploading(false);
@@ -99,6 +108,8 @@ export default function Home() {
 
   function openModal() { setModalOpen(true); setUploadMsg(""); setUploadOk(true); }
   function closeModal() { if (!uploading) setModalOpen(false); }
+
+  const avgSec = stats ? ((stats.avg_latency_ms ?? 0) / 1000).toFixed(1) : "—";
 
   return (
     <div className="shell">
@@ -151,8 +162,8 @@ export default function Home() {
           <div className="sidebar-block">
             <p className="sidebar-eyebrow">Knowledge base</p>
             <p className="kb-count">
-              {docCount !== null
-                ? <><strong>{docCount.toLocaleString()}</strong> documents available</>
+              {stats !== null
+                ? <><strong>{stats.indexed_documents.toLocaleString()}</strong> documents available</>
                 : "Loading…"}
             </p>
             <button className="btn-upload" onClick={openModal}>
@@ -161,7 +172,38 @@ export default function Home() {
             </button>
           </div>
 
+          <div className="sidebar-sep" />
 
+          {/* ── Live metrics ── */}
+          {/* <div className="sidebar-block">
+            <p className="sidebar-eyebrow">Live metrics</p>
+            <div className="metrics-grid">
+              <div className="metric-card">
+                <span className="metric-value">
+                  {stats != null ? (stats.total_queries ?? 0).toLocaleString() : "—"}
+                </span>
+                <span className="metric-label">Queries</span>
+              </div>
+              <div className="metric-card">
+                <span className="metric-value">
+                  {stats != null && (stats.total_queries ?? 0) > 0 ? `${avgSec}s` : "—"}
+                </span>
+                <span className="metric-label">Avg response</span>
+              </div>
+              <div className="metric-card metric-card--warn">
+                <span className="metric-value">
+                  {stats != null ? (stats.guardrail_triggers ?? 0) : "—"}
+                </span>
+                <span className="metric-label">Safety blocks</span>
+              </div>
+              <div className="metric-card metric-card--muted">
+                <span className="metric-value">
+                  {stats != null ? (stats.out_of_domain_count ?? 0) : "—"}
+                </span>
+                <span className="metric-label">Out of scope</span>
+              </div>
+            </div>
+          </div> */}
         </aside>
 
         {/* Chat */}
@@ -221,11 +263,11 @@ export default function Home() {
             </p>
 
             <label className={`drop-zone${uploading ? " drop-zone--busy" : ""}`}>
-              <input type="file" accept=".txt,.json" onChange={handleUpload} disabled={uploading} />
+              <input type="file" accept=".txt,.json,.pdf" onChange={handleUpload} disabled={uploading} />
               <span className="dz-label">
                 {uploading ? "Processing…" : "Click to browse or drop a file"}
               </span>
-              <span className="dz-hint">Supported formats: .txt &nbsp;·&nbsp; .json</span>
+              <span className="dz-hint">Supported formats: .txt &nbsp;·&nbsp; .json &nbsp;·&nbsp; .pdf</span>
             </label>
 
             {uploadMsg && (

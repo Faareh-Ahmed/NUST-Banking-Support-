@@ -3,9 +3,8 @@ backend/app/core/llm_engine.py
 -----------------------
 End-to-end Retrieval-Augmented Generation (RAG) pipeline.
 
-LLM: Qwen/Qwen3-1.7B running locally on CPU via the transformers library.
-Model is downloaded once (~3.4 GB) and cached in ~/.cache/huggingface/.
-No API key or GPU required.
+LLM: meta-llama/llama-3.2-3b-instruct via OpenRouter API (OpenAI-compatible).
+No local model download, no GPU required. Responses arrive in ~2–5 s.
 
 Flow
 ----
@@ -13,17 +12,17 @@ User Query
   → Input Guardrails          (regex, <1 ms)
   → Embedding + ChromaDB      (all-MiniLM-L6-v2, local)
   → Out-of-Domain Check       (cosine similarity thresholds)
-  → Qwen3-1.7B local generate (CPU, bfloat16, ~30–90 s first run)
+  → OpenRouter API call       (meta-llama/llama-3.2-3b-instruct, ~2–5 s)
   → Output Guardrails         (PII scrub + harmful-content check)
   → Response
 """
 
 import logging
+import os
 import time
 from typing import Dict, List, Optional
 
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from openai import OpenAI
 
 from backend.app.core.settings import cfg
 from backend.app.core.guardrails import (
@@ -55,31 +54,23 @@ class LLMEngine:
     def __init__(self, embedding_store: Optional[EmbeddingStore] = None):
         self.store = embedding_store or EmbeddingStore()
 
-        logger.info("Loading tokenizer: %s", cfg.llm.model_name)
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            cfg.llm.model_name,
-            trust_remote_code=True,
-        )
+        api_key = os.environ.get("OPENROUTER_API_KEY", "")
+        if not api_key:
+            raise RuntimeError(
+                "OPENROUTER_API_KEY is not set. "
+                "Add it to backend/.env or set it as an environment variable."
+            )
 
-        # bfloat16 halves RAM usage (~3.4 GB vs ~6.8 GB) and is natively
-        # supported by Intel Core Ultra processors.
-        logger.info(
-            "Loading model %s on CPU (bfloat16) — first run downloads ~3.4 GB...",
-            cfg.llm.model_name,
+        self.client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key,
         )
-        self.model = AutoModelForCausalLM.from_pretrained(
-            cfg.llm.model_name,
-            torch_dtype=torch.bfloat16,
-            low_cpu_mem_usage=True,    # load weights shard-by-shard to limit peak RAM
-            trust_remote_code=True,
-        )
-        self.model.eval()
-        logger.info("Model loaded on CPU — ready.")
+        logger.info("OpenRouter client initialised — model: %s", cfg.llm.model_name)
 
     # ── Private helpers ───────────────────────────────────────────────────────
 
     def _generate(self, query: str, context_chunks: List[Dict]) -> str:
-        """Format messages, run one forward pass, return the generated text."""
+        """Build messages, call OpenRouter, return the generated text."""
         context_text = "\n\n".join(chunk["content"] for chunk in context_chunks)
 
         messages = [
@@ -87,55 +78,22 @@ class LLMEngine:
             {
                 "role": "user",
                 "content": (
-                    "Answer using ONLY the context below. "
-                    "Be specific and helpful. Use bullet points for lists.\n\n"
+                    "Use ONLY the context below to answer. "
+                    "If the context does not contain the answer, say you don't have that information — do NOT use outside knowledge.\n\n"
                     f"Context:\n{context_text}\n\n"
                     f"Question: {query}"
                 ),
             },
         ]
 
-        # Apply the Qwen3 chat template.
-        # enable_thinking=False disables the <think>...</think> reasoning step
-        # so we get the answer directly without extra latency.
-        try:
-            prompt = self.tokenizer.apply_chat_template(
-                messages,
-                tokenize=False,
-                add_generation_prompt=True,
-                enable_thinking=False,
-            )
-        except TypeError:
-            # Older tokenizer versions that don't support enable_thinking
-            prompt = self.tokenizer.apply_chat_template(
-                messages,
-                tokenize=False,
-                add_generation_prompt=True,
-            )
+        response = self.client.chat.completions.create(
+            model=cfg.llm.model_name,
+            messages=messages,
+            max_tokens=cfg.llm.max_new_tokens,
+            temperature=cfg.llm.temperature,
+        )
 
-        inputs = self.tokenizer(prompt, return_tensors="pt")
-        prompt_len = inputs["input_ids"].shape[-1]
-
-        with torch.no_grad():
-            output_ids = self.model.generate(
-                **inputs,
-                max_new_tokens=cfg.llm.max_new_tokens,
-                temperature=cfg.llm.temperature,
-                do_sample=True,
-                repetition_penalty=1.1,
-                pad_token_id=self.tokenizer.eos_token_id,
-            )
-
-        # Decode only the newly generated tokens — not the prompt
-        new_ids = output_ids[0][prompt_len:]
-        answer = self.tokenizer.decode(new_ids, skip_special_tokens=True).strip()
-
-        # Strip any residual <think>...</think> block the model may have emitted
-        if "<think>" in answer:
-            after_think = answer.split("</think>", 1)
-            answer = after_think[-1].strip() if len(after_think) > 1 else answer
-
-        return answer
+        return response.choices[0].message.content.strip()
 
     @staticmethod
     def _make_result(
@@ -190,7 +148,7 @@ class LLMEngine:
                 latency_ms=elapsed(),
             )
 
-        # Step 4 — Generate answer locally
+        # Step 4 — Generate answer via OpenRouter API
         raw_answer = self._generate(query, retrieved)
 
         # Step 5 — Output guardrails (PII scrub + harmful content check)

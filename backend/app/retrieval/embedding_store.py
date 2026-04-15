@@ -9,7 +9,7 @@ import logging
 from typing import Dict, List
 
 import chromadb
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, models
 
 from backend.app.core.settings import cfg
 
@@ -29,7 +29,15 @@ class EmbeddingStore:
 
     def __init__(self, persist_dir: str = cfg.paths.chroma_dir):
         logger.info("Loading embedding model: %s", cfg.embedding.model_name)
-        self.model = SentenceTransformer(cfg.embedding.model_name)
+        # transformers 4.41+ hardcodes low_cpu_mem_usage=True which creates meta
+        # tensors; sentence-transformers 2.x then calls .to(device) which fails.
+        # Using models.Transformer with model_args lets us override this default.
+        _transformer = models.Transformer(
+            cfg.embedding.model_name,
+            model_args={"low_cpu_mem_usage": False},
+        )
+        _pooling = models.Pooling(_transformer.get_word_embedding_dimension())
+        self.model = SentenceTransformer(modules=[_transformer, _pooling])
 
         logger.info("Opening ChromaDB at: %s", persist_dir)
         self._client = chromadb.PersistentClient(path=persist_dir)

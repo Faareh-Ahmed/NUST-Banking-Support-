@@ -24,6 +24,12 @@ class RAGService:
     _engine: LLMEngine | None = None
     _store_error: str | None = None
 
+    # Session-level metrics (reset on server restart)
+    _total_queries: int = 0
+    _total_latency_ms: float = 0.0
+    _guardrail_triggers: int = 0
+    _out_of_domain_count: int = 0
+
     def _ensure_ready_store(self) -> None:
         """Initialize vector store once per process."""
         if self._store is None:
@@ -64,14 +70,18 @@ class RAGService:
         return {"status": "ok", "service": "nust-bank-backend"}
 
     def stats(self) -> dict:
+        avg = round(self._total_latency_ms / self._total_queries, 1) if self._total_queries else 0.0
         try:
             self._ensure_ready_store()
             assert self._store is not None
-
             return {
                 "indexed_documents": self._store.document_count(),
                 "llm_model": cfg.llm.model_name,
                 "embedding_model": cfg.embedding.model_name,
+                "total_queries": self._total_queries,
+                "avg_latency_ms": avg,
+                "guardrail_triggers": self._guardrail_triggers,
+                "out_of_domain_count": self._out_of_domain_count,
             }
         except Exception as e:
             logger.error(f"Stats endpoint failed: {e}")
@@ -79,13 +89,23 @@ class RAGService:
                 "indexed_documents": 0,
                 "llm_model": cfg.llm.model_name,
                 "embedding_model": cfg.embedding.model_name,
-                "error": f"Vector store unavailable: {str(e)[:100]}",
+                "total_queries": self._total_queries,
+                "avg_latency_ms": avg,
+                "guardrail_triggers": self._guardrail_triggers,
+                "out_of_domain_count": self._out_of_domain_count,
             }
 
     def chat(self, message: str) -> dict:
         self._ensure_ready_engine()
         assert self._engine is not None
-        return self._engine.answer(message)
+        result = self._engine.answer(message)
+        self._total_queries += 1
+        self._total_latency_ms += result.get("latency_ms", 0.0)
+        if result.get("guardrail_triggered"):
+            self._guardrail_triggers += 1
+        if result.get("out_of_domain"):
+            self._out_of_domain_count += 1
+        return result
 
     def upload_and_index(self, filename: str) -> dict:
         """

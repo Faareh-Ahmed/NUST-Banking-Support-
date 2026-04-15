@@ -25,6 +25,10 @@ class StatsResponse(BaseModel):
     indexed_documents: int
     llm_model: str
     embedding_model: str
+    total_queries: int = 0
+    avg_latency_ms: float = 0.0
+    guardrail_triggers: int = 0
+    out_of_domain_count: int = 0
 
 
 class HealthResponse(BaseModel):

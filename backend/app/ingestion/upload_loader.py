@@ -1,14 +1,16 @@
 """
 backend/app/ingestion/upload_loader.py
 -------------------------------
-Ingests user-uploaded .txt and .json files from the uploads directory.
-Supports both the FAQ JSON schema and arbitrary plain-text/JSON files.
+Ingests user-uploaded .txt, .json, and .pdf files from the uploads directory.
+Supports both the FAQ JSON schema and arbitrary plain-text/JSON/PDF files.
 """
 
 import json
 import logging
 import os
 from typing import List, Dict
+
+from pypdf import PdfReader
 
 from backend.app.core.settings import cfg
 from backend.app.ingestion.text_cleaner import clean_text, anonymize_text
@@ -18,9 +20,10 @@ logger = logging.getLogger(__name__)
 
 def ingest_uploaded_documents(directory: str = cfg.paths.uploaded_docs_dir) -> List[Dict[str, str]]:
     """
-    Read all ``.txt`` and ``.json`` files in *directory*.
+    Read all ``.txt``, ``.json``, and ``.pdf`` files in *directory*.
 
     - ``.txt`` files → cleaned and anonymised plain text.
+    - ``.pdf`` files → text extracted page-by-page, cleaned and anonymised.
     - ``.json`` files that follow the FAQ schema → delegated to
       :func:`~backend.app.ingestion.json_loader.ingest_faq_json`.
     - Other ``.json`` files → serialised as text.
@@ -47,6 +50,22 @@ def ingest_uploaded_documents(directory: str = cfg.paths.uploaded_docs_dir) -> L
                 "category": "Uploaded",
                 "content": content,
             })
+
+        elif fname.endswith(".pdf"):
+            try:
+                reader = PdfReader(fpath)
+                pages = [page.extract_text() or "" for page in reader.pages]
+                content = anonymize_text(clean_text("\n\n".join(pages)))
+                if content.strip():
+                    documents.append({
+                        "source": f"uploaded/{fname}",
+                        "category": "Uploaded",
+                        "content": content,
+                    })
+                else:
+                    logger.warning("No extractable text in PDF: %s (scanned/image PDF?)", fname)
+            except Exception as exc:
+                logger.warning("Skipping unreadable PDF %s: %s", fname, exc)
 
         elif fname.endswith(".json"):
             try:

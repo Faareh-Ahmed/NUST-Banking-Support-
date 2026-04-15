@@ -53,11 +53,10 @@ class EmbeddingSettings:
 
 @dataclass(frozen=True)
 class LLMSettings:
-    # Local inference — Qwen3 1.7B (1.7 billion parameters, strictly under 6B).
-    # Downloaded once from HuggingFace (~3.4 GB), cached in ~/.cache/huggingface/.
-    # Runs on CPU using bfloat16 (~3.4 GB RAM). No API key or GPU required.
-    model_name: str = "Qwen/Qwen3-1.7B"
-    max_new_tokens: int = 300      # keep responses concise; reduces CPU inference time
+    # Cloud inference via OpenRouter — Llama 3.2 3B (3B parameters, strictly under 6B).
+    # No local download, no GPU required. Set OPENROUTER_API_KEY in backend/.env.
+    model_name: str = "meta-llama/llama-3.2-3b-instruct"
+    max_new_tokens: int = 512
     temperature: float = 0.3
 
 
@@ -68,9 +67,11 @@ class RetrieverSettings:
     chunk_size: int = 500       # characters per chunk
     chunk_overlap: int = 50     # characters of overlap between chunks
     top_k: int = 3              # top-3 retrieved chunks per query
-    # Out-of-domain thresholds (cosine similarity)
-    ood_max_score_threshold: float = 0.25
-    ood_avg_score_threshold: float = 0.20
+    # Out-of-domain thresholds (cosine similarity, range 0–1).
+    # Raised from 0.25/0.20 — low-param models need higher relevance signal
+    # before they reliably stay on-context.
+    ood_max_score_threshold: float = 0.35
+    ood_avg_score_threshold: float = 0.30
 
 
 # ── Guardrail Settings ────────────────────────────────────────────────────────

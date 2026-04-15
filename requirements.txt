@@ -1,11 +1,10 @@
-# ── LLM (Local inference — Qwen3-1.7B on CPU, no GPU required) ──────────────
-torch>=2.0.0                       # PyTorch CPU build — bfloat16 inference on Intel Core Ultra
-transformers>=4.51.0               # Qwen3 support requires 4.51+
-accelerate>=0.30.0                 # low_cpu_mem_usage shard-by-shard weight loading
-huggingface_hub>=0.23.0            # used internally by transformers + sentence-transformers
+# ── LLM (Cloud API via OpenRouter — qwen/qwen-2.5-3b-instruct) ───────────────
+openai>=1.0.0                      # OpenAI-compatible client; OpenRouter uses the same interface
+httpx>=0.23.0,<0.28.0              # openai 1.x passes 'proxies' which httpx 0.28 removed
+huggingface_hub>=0.23.0            # used internally by sentence-transformers
 
 # ── Local Embeddings ──────────────────────────────────────────────────────────
-sentence-transformers>=2.2.2       # all-MiniLM-L6-v2 (22M params, CPU-fast, ~100 MB)
+sentence-transformers>=2.2.2,<3.0.0  # v5 loads meta tensors incompatible with torch 2.5 .to(device)
 
 # ── Vector Store ──────────────────────────────────────────────────────────────
 chromadb>=1.0.0
@@ -13,6 +12,7 @@ protobuf>=3.20.0,<4.26.0           # chromadb 1.x requires protobuf <4.26
 
 # ── Data Processing ───────────────────────────────────────────────────────────
 openpyxl>=3.1.2                    # Excel knowledge-base parsing
+pypdf>=4.0.0                       # PDF text extraction for uploaded documents
 pandas>=2.0.0
 
 # ── Backend Framework ─────────────────────────────────────────────────────────
