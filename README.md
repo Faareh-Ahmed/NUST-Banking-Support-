@@ -760,9 +760,9 @@ All settings are in [backend/app/core/settings.py](backend/app/core/settings.py)
 | `max_new_tokens` | `400` | Maximum tokens in the generated response |
 | `temperature` | `0.3` | Sampling temperature (0 = fully deterministic, 1 = creative) |
 
-Available Groq models under 6B parameters:
-- `llama-3.2-1b-preview` — 1B params, fastest inference
-- `llama-3.2-3b-preview` — 3B params, recommended balance of speed and quality
+Available Groq chat models (as of April 2025 — llama-3.2-3b/1b-preview have been retired):
+- `llama-3.1-8b-instant` — 8B params, recommended — fastest chat model, 14,400 req/day free
+- `openai/gpt-oss-20b` — 20B params, higher quality, lower free quota
 
 ### Embedding Settings
 

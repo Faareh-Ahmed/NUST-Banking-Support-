@@ -1,5 +1,8 @@
-# ── LLM (Cloud API — no local GPU needed) ────────────────────────────────────
-groq>=0.9.0                        # Groq API client for Llama 3.2 3B inference
+# ── LLM (Local inference — Qwen3-1.7B on CPU, no GPU required) ──────────────
+torch>=2.0.0                       # PyTorch CPU build — bfloat16 inference on Intel Core Ultra
+transformers>=4.51.0               # Qwen3 support requires 4.51+
+accelerate>=0.30.0                 # low_cpu_mem_usage shard-by-shard weight loading
+huggingface_hub>=0.23.0            # used internally by transformers + sentence-transformers
 
 # ── Local Embeddings ──────────────────────────────────────────────────────────
 sentence-transformers>=2.2.2       # all-MiniLM-L6-v2 (22M params, CPU-fast, ~100 MB)

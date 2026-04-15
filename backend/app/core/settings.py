@@ -53,13 +53,11 @@ class EmbeddingSettings:
 
 @dataclass(frozen=True)
 class LLMSettings:
-    # Groq-hosted Llama 3.2 — 3B parameters, free tier, ~200ms responses.
-    # Alternative Groq models (all free, all under 6B):
-    #   "llama-3.2-1b-preview"    # 1B  — fastest, lower quality
-    #   "llama-3.2-3b-preview"    # 3B  — recommended sweet spot
-    # Inference runs on Groq's LPU hardware; no local GPU needed.
-    model_name: str = "llama-3.2-3b-preview"
-    max_new_tokens: int = 400
+    # Local inference — Qwen3 1.7B (1.7 billion parameters, strictly under 6B).
+    # Downloaded once from HuggingFace (~3.4 GB), cached in ~/.cache/huggingface/.
+    # Runs on CPU using bfloat16 (~3.4 GB RAM). No API key or GPU required.
+    model_name: str = "Qwen/Qwen3-1.7B"
+    max_new_tokens: int = 300      # keep responses concise; reduces CPU inference time
     temperature: float = 0.3
 
 
@@ -69,7 +67,7 @@ class LLMSettings:
 class RetrieverSettings:
     chunk_size: int = 500       # characters per chunk
     chunk_overlap: int = 50     # characters of overlap between chunks
-    top_k: int = 3              # 3 chunks keeps prompt within 512-token T5 limit
+    top_k: int = 3              # top-3 retrieved chunks per query
     # Out-of-domain thresholds (cosine similarity)
     ood_max_score_threshold: float = 0.25
     ood_avg_score_threshold: float = 0.20
